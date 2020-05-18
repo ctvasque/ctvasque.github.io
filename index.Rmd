@@ -2,12 +2,14 @@
 title: "Reporte Covid-19 Chile"
 output: 
   flexdashboard::flex_dashboard:
+    css: styles.css
     orientation: rows
     ##vertical_layout: scroll
     social: menu
     ##source_code: embed
     vertical_layout: fill
 ---
+
 
 ```{r setup, include=FALSE}
 #------------------ Packages ------------------
@@ -350,7 +352,7 @@ plotly::layout(annotations=list(text="Fallecidos",showarrow =F,x = 0.79,y = 0.5,
 
 ### Gráfico de Casos Confirmados por Región 
 
-```{r}
+```{r, out.width = "20%"}
 library(plotly)
 p <- plot_ly()%>%
   layout(title = "Tendencia",
