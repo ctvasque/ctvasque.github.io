@@ -1,0 +1,923 @@
+---
+title: "Reporte Covid-19 Chile"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    ##vertical_layout: scroll
+    social: menu
+    ##source_code: embed
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+#------------------ Packages ------------------
+library(readr)
+library(dplyr)
+library(flexdashboard)
+
+#checks if there is data update on the Github version
+#coronavirus::update_datasets(silence = TRUE)
+#mudata2::update_datasets(coronavirus,silence = TRUE)
+
+library(coronavirus)
+library(covid19italy)
+
+data(coronavirus)
+data(italy_total)
+
+`%>%` <- magrittr::`%>%`
+
+#------------------ Parameters ------------------
+# Set colors
+# https://www.w3.org/TR/css-color-3/#svg-color
+
+confirmed_color 	<- "purple"
+new_color         <- "darkgoldenrod"
+active_color 	    <- "#1f77b4"
+recovered_color 	<- "forestgreen"
+death_color 	    <- "red"
+
+#------------------ Data ------------------
+
+#---- df -------
+
+confirmed  		<- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/CasosTotalesCumulativo.csv",col_names=T)
+#recovered 		<- read_csv(file = "C:/Users/ctvas/Desktop/Tablero Coronavirus/Datos-COVID19-master/Datos-COVID19-master/output/producto3/CasosTotalesCumulativo.csv",col_names=T)
+death      		<- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto14/FallecidosCumulativo.csv",col_names=T)
+nuevos            <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto13/CasosNuevosCumulativo.csv",col_names=T)
+consintomas		<- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto26/CasosNuevosConSintomas.csv",col_names=T)
+sinsintomas		<- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto27/CasosNuevosSinSintomas.csv",col_names=T)
+
+
+confirmed  		<- confirmed[c(1,length(confirmed))]
+death      		<- death[c(1,length(death))]
+nuevos		<- nuevos[c(1,length(nuevos))]	
+consintomas		<- consintomas[c(1,length(consintomas))]
+sinsintomas		<- sinsintomas[c(1,length(sinsintomas))]
+
+names(confirmed) 		<- c("Region","Confirmados")
+names(death)     		<- c("Region","Fallecidos")
+names(nuevos) 		<- c("Region","Casos Nuevos")
+names(consintomas)     	<- c("Region","Nuevos con Síntomas")
+names(sinsintomas) 	<- c("Region","Nuevos sin Síntomas")
+
+
+df <- dplyr::bind_cols(confirmed, death[2],nuevos[2],consintomas[2],sinsintomas[2])
+df <-	df %>% 
+		dplyr::filter(Region != "Total") 					%>%
+		dplyr::arrange(-Confirmados)						%>%
+		dplyr::mutate(Region = factor(Region, levels = rev(Region))) 
+
+#---- df_daily -------
+
+cum_recovered 	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto5/TotalesNacionales_T.csv",col_names=T)
+cum_recovered      <- cum_recovered %>%
+				dplyr::rename(recovered_cum = "Casos recuperados", date = Fecha) %>%
+				dplyr::select(date,recovered_cum) %>%
+				dplyr::mutate(date = as.character(date))
+
+#cum_recovered 	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto5/TotalesNacionales.csv",col_names=T)
+#cum_recovered 	 <- cum_recovered %>% 
+#				dplyr::filter(Fecha == "Casos recuperados") %>%
+#				dplyr::mutate(Fecha = ifelse(Fecha == "Casos recuperados","Recuperados",NA))
+
+#cum_recovered      <- tidyr::gather(cum_recovered, 2:length(cum_recovered), key = "date", value = "recovered_cum")  %>%                           
+#     			    	dplyr::select(-Fecha)                            
+
+cum_death	 	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto14/FallecidosCumulativo.csv",col_names=T)
+cum_death		 <- cum_death %>%
+			    	dplyr::filter(Region == "Total")	
+cum_death   	 <- tidyr::gather(cum_death, 2:length(cum_death), key = "date", value = "death_cum")   %>%
+				dplyr::select(-Region)                          
+
+cum_confirmed	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/CasosTotalesCumulativo.csv",col_names=T)
+cum_confirmed	 <- cum_confirmed %>%
+			    	dplyr::filter(Region == "Total")	
+cum_confirmed   	 <- tidyr::gather(cum_confirmed, 2:length(cum_confirmed), key = "date", value = "confirmed_cum")   %>%
+				dplyr::select(-Region)                          
+
+df_daily		 <- cum_confirmed %>%
+				dplyr::left_join(cum_recovered) %>%
+				dplyr::left_join(cum_death)	  %>%
+				tidyr::replace_na(list(recovered_cum = 0, death_cum = 0)) %>%
+				dplyr::mutate(active_cum =  confirmed_cum - recovered_cum - death_cum) %>% 
+        dplyr::mutate(date = as.Date(date))
+df1 <- coronavirus %>% dplyr::filter(date == max(date))
+
+library(scales)
+
+
+new_cases 	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto5/TotalesNacionales_T.csv",col_names=T)
+new_cases	 <- new_cases 												%>%
+				dplyr::rename(date = Fecha, new  = "Casos nuevos totales") 	%>%
+				dplyr::select(date,new)
+
+df_ncases    <- new_cases  %>%
+				dplyr::mutate(variacion =  round(c(0,diff(new)/new[1:(length(new)-1)]),2)) %>%
+				dplyr::mutate(variacion = replace(variacion,list=which(variacion %in% c(Inf,-Inf,NA,NaN)),round(mean(variacion[which(!(variacion %in% c(Inf,-Inf,NA,NaN)))]),0))) %>%
+				dplyr::mutate(variacion = formattable::percent(variacion,digits = 0))
+
+casos_act 	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto5/TotalesNacionales_T.csv",col_names=T)
+casos_act	 <- casos_act 												%>%
+				dplyr::rename(date = Fecha, Activos  = "Casos activos") 	%>%
+				dplyr::select(date,Activos)
+
+casos_act   <- casos_act  %>%
+				dplyr::mutate(variacion =  round(c(0,diff(Activos)/Activos[1:(length(Activos)-1)]),2)) %>%
+				dplyr::mutate(variacion = replace(variacion,list=which(variacion %in% c(Inf,-Inf,NA,NaN)),round(mean(variacion[which(!(variacion %in% c(Inf,-Inf,NA,NaN)))]),0))) %>%
+				dplyr::mutate(variacion = formattable::percent(variacion,digits = 0))
+
+
+#new_cases 	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto5/TotalesNacionales.csv",col_names=T)
+#new_cases 	 <- new_cases %>% 
+#				dplyr::filter(Fecha == "Casos nuevos totales") %>%
+#				dplyr::mutate(Fecha = ifelse(Fecha == "Casos nuevos totales","Nuevos",NA))
+
+
+#df_ncases    <- tidyr::gather(new_cases, 2:length(new_cases), key = "date", value = "new")  %>%                           
+#     			    	dplyr::select(-Fecha)  %>%
+#				dplyr::mutate(date = as.Date(date), variacion =  round(c(0,diff(new)/new[1:(length(new)-1)]),2)) %>%
+#				dplyr::mutate(variacion = replace(variacion,list=which(variacion %in% c(Inf,-Inf,NA,NaN)),round(mean(variacion[which(!(variacion %in% c(Inf,-Inf,NA,NaN)))]),0))) %>%
+#				dplyr::mutate(variacion = formattable::percent(variacion,digits = 0))
+
+
+df_trajectory     <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/CasosTotalesCumulativo_T.csv",col_names=T)
+df_trajectory     <- df_trajectory 						%>%
+				dplyr::mutate(date = as.Date(Region))	%>%
+				dplyr::select(-Region,-Total)			%>%
+				dplyr::select(date,Metropolitana,everything())
+
+df_traj_region     <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto13/CasosNuevosCumulativo_T.csv",col_names=T) %>%
+				dplyr::mutate(Fecha = as.Date(Region))	%>%
+				dplyr::select(-Total,-Region)	   		%>%
+				dplyr::select(Fecha,everything())
+
+dfact_traj_region	<- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto19/CasosActivosPorComuna_std.csv",col_names=T) %>%
+				dplyr::filter(Comuna == "Total")	
+
+orden_region	<- data_frame(Region = dfact_traj_region$Region[1:16],ID=1:16)
+
+dfact_traj_region	<-	dfact_traj_region	%>%
+					dplyr::left_join(orden_region,by = "Region")	%>%
+					dplyr::arrange(ID, Region,Fecha)			%>%
+					dplyr::rename(Activos = "Casos activos")		%>%
+					dplyr::select(Region, Fecha, Activos)		%>%
+					dplyr::mutate(Region = factor(Region,levels = orden_region$Region))	%>%			
+					tidyr::spread(key = Region, value = Activos)  %>%
+          dplyr::rename("O'Higgins" = "Del Libertador General Bernardo O’Higgins")
+
+rm(orden_region)
+
+df_act_traj_comuna <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto19/CasosActivosPorComuna_std.csv",col_names=T) %>%
+				dplyr::filter(Region == "Metropolitana", Comuna != "Total")	%>%
+				dplyr::arrange(Comuna,Fecha)						%>%
+				dplyr::rename(Activos = "Casos activos")				%>%
+				dplyr::select(Comuna, Fecha, Activos)				%>%			
+				tidyr::spread(key = Comuna, value = Activos)
+
+library(readr)
+library(plotly)
+library(ozmaps)
+library(sf)
+library(chilemapas)
+library(mapview)
+
+confirmedmap  <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/CasosTotalesCumulativo.csv",col_names=T)
+confcomudmap  <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto1/Covid-19.csv",col_names=T)
+pcr           <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto7/PCR.csv",col_names=T)
+
+confirmedmap  	  <- confirmedmap[c(1,length(confirmedmap))]
+names(confirmedmap) <- c("Region","Confirmados")
+confirmedmap        <- confirmedmap%>% 
+				dplyr::mutate(ID = 1:17)
+
+confcomudmap	  <- confcomudmap[c(3,4,5,length(confcomudmap)-1,length(confcomudmap))]
+names(confcomudmap) <- c("Comuna","codigo_comuna","Poblacion_comuna", "confirmed_comuna", "Tasa_comuna")
+
+
+names(pcr)[2] <- "codigo_region" 
+pcr           <- pcr %>% 
+			dplyr::select(Region, codigo_region, Poblacion) %>%
+			dplyr::mutate(ID = 1:16)
+
+df_mapa	<-   dplyr::inner_join(pcr,confirmedmap,by = "ID") %>%
+		     	dplyr::mutate(Tasa =  round((Confirmados/Poblacion)*100000,2)) 
+#			%>%
+#			dplyr::mutate(FactorTasa = cut(Tasa,breaks = seq(min(Tasa),max(Tasa),length = 10),include.lowest=TRUE,ordered_result=T)) %>%
+#			dplyr::mutate(FactorTasa = factor(FactorTasa, levels = levels(FactorTasa)))
+
+Nmapa_regiones <-	generar_regiones(mapa = dplyr::filter(chilemapas::mapa_comunas,!(codigo_comuna %in% c("05104","05201"))))
+Nmapa_regiones <- Nmapa_regiones							%>%
+		      	dplyr::left_join(df_mapa,by = "codigo_region")  %>%
+				dplyr::rename("Región" = Region.x,
+							"Tasa Confirmados por 100,000" = Tasa)	%>%
+				dplyr::select(-Region.y,-ID)
+
+
+Nmapa_comunas <- chilemapas::mapa_comunas 					%>%
+		     	dplyr::left_join(df_mapa,by = "codigo_region") 		%>%
+			dplyr::left_join(confcomudmap,by = "codigo_comuna") 	%>%
+			dplyr::select(-ID,-Region.y)					%>%
+			dplyr::rename("Código Comuna" = codigo_comuna,
+					  "Código Provincia" = codigo_provincia,
+					   Region  = Region.x,
+					  "Población Comuna" = Poblacion_comuna,
+					  "Confirmados Comuna" = confirmed_comuna,
+					  "Tasa Confirmados por 100,000 comuna"= Tasa_comuna)							
+
+filtro_region <- dplyr::distinct(Nmapa_comunas, codigo_region, Region, Confirmados) 	%>%
+			dplyr::arrange(desc(Confirmados)) 							%>%
+			dplyr::filter(codigo_region != "13") 					
+
+
+Nmapa_comunas <- Nmapa_comunas %>%
+			dplyr::rename("Tasa Confirmados por 100,000" = Tasa)	
+
+
+shp_chile_1   = sf::st_as_sf(dplyr::filter(Nmapa_regiones,codigo_region %in% c("01","02","03","04","05","06","07","15","13"))%>%
+					dplyr::rename("Código Región" = codigo_region))
+	
+shp_chile_2   = sf::st_as_sf(dplyr::filter(Nmapa_regiones,!(codigo_region %in% c("01","02","03","04","05","06","07","15","13")))%>%
+					dplyr::rename("Código Región" = codigo_region))
+
+
+shp_santiago = sf::st_as_sf(dplyr::filter(Nmapa_comunas,codigo_region=="13"))
+
+assign(paste0("shp_",filtro_region$Region[1]),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[1])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region))
+assign(paste0("shp_",filtro_region$Region[2]),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[2])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region))
+assign(paste0("shp_",filtro_region$Region[3]),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[3])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region))
+
+```
+
+Resumen
+=======================================================================
+Row
+-----------------------------------------------------------------------
+
+### confirmed {.value-box}
+
+```{r}
+
+valueBox(value = paste(format(sum(df$Confirmados), big.mark = ","), "", sep = " "), 
+         caption = "Total Casos Confirmados", 
+         icon = "fas fa-user-md", 
+         color = confirmed_color)
+```
+
+### new {.value-box}
+
+```{r}
+
+valueBox(value = paste(format(sum(df$"Casos Nuevos"), big.mark = ","), "", sep = " "), 
+         caption = "Casos Nuevos", 
+         icon = "fas fa-users", 
+         color = new_color)
+```
+
+
+### active {.value-box}
+
+```{r}
+valueBox(value = paste(format(df_daily$active_cum[length(df_daily$active_cum)], big.mark = ","), " (",
+                       round(100 * sum(df_daily$active_cum[length(df_daily$active_cum)], na.rm = TRUE) / sum(df$Confirmados), 1), 
+                       "%)", sep = ""), 
+         caption = "Casos Activos", icon = "fas fa-ambulance", 
+         color = active_color)
+```
+
+### recovered {.value-box}
+
+```{r}
+valueBox(value = paste(format(df_daily$recovered_cum[length(df_daily$recovered_cum)], big.mark = ","), " (",
+                       round(100 * sum(df_daily$recovered_cum[length(df_daily$recovered_cum)], na.rm = TRUE) / sum(df$Confirmados), 1), 
+                       "%)", sep = ""), 
+         caption = "Casos Recuperados", icon = "fas fa-heartbeat", 
+         color = recovered_color)
+```
+
+### death {.value-box}
+
+```{r}
+
+valueBox(value = paste(format(sum(df$Fallecidos, na.rm = TRUE), big.mark = ","), " (",
+                       round(100 * sum(df$Fallecidos, na.rm = TRUE) / sum(df$Confirmados), 1), 
+                       "%)", sep = ""),
+         caption = "Casos Fallecidos", 
+         icon = "fas fa-heart-broken", 
+         color = death_color)
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Distribución de Casos Confirmados por Región
+
+```{r daily_summary}
+
+plotly::plot_ly(data = df[1:16,], 
+                labels = ~ Region, 
+                values = ~ Confirmados,
+		    textposition = 'inside',
+        	    textinfo = 'label+percent',
+		    insidetextfont = list(color = '#FFFFFF'),
+                # text =  ~ confirmed, 
+                # textposition = 'auto',
+                type = "pie", 
+                name = "Confirmed",
+		    domain = list(x = c(0, 0.5), y = c(0, 1)),	
+                marker = list(color = active_color),
+		            hole = 0.4) %>%
+plotly::layout(annotations=list(text="Confirmados",showarrow =F,x = 0.20,y = 0.5,size = 35), "showarrow"=F,font=list(color="blue")) %>%
+plotly::add_trace(data = df[1:16,], 
+                labels = ~ Region, 
+                values = ~ Fallecidos,
+		    textposition = 'inside',
+        	    textinfo = 'label+percent',
+		    insidetextfont = list(color = '#FFFFFF'),
+                # text =  ~ confirmed, 
+                # textposition = 'auto',
+                type = "pie", 
+                name = "Death",
+		    domain = list(x = c(0.5, 1), y = c(0, 1)),
+                marker = list(color = active_color),
+		            hole = 0.4) %>%
+plotly::layout(annotations=list(text="Fallecidos",showarrow =F,x = 0.79,y = 0.5,size = 35), "showarrow"=F,font=list(color="blue"))
+  
+
+
+```
+
+### Gráfico de Casos Confirmados por Región 
+
+```{r}
+library(plotly)
+p <- plot_ly()%>%
+  layout(title = "Tendencia",
+         xaxis = list(title = ""),
+         yaxis = list (title = "Casos Confirmados Acumulados") )
+
+ToAdd <- setdiff(colnames(df_trajectory),"date")
+
+for(i in ToAdd){
+  p <- p %>% add_trace(x = df_trajectory[["date"]], y = df_trajectory[[i]], name = i,
+                       type = 'scatter',
+                       mode = 'line+markers',
+                       line = list(width = 4))
+}
+
+p
+```
+
+
+Row {data-width=400}
+-----------------------------------------------------------------------
+
+
+### Casos Acumulados Diarios por Diagnostico {.no-padding}
+    
+```{r}
+
+# plotly::plot_ly(df_daily, x = ~date, y = ~active_cum, name = 'Active', type = 'scatter', mode = 'none', stackgroup = 'one', fillcolor = "#1f77b4") %>%
+# plotly::add_trace(y = ~recovered_cum, name = 'Recovered', fillcolor = "green") %>%
+# plotly::add_trace(y = ~death_cum, name = "Death", fillcolor = "red") %>%
+#   plotly::layout(title = "",
+#          xaxis = list(title = "",
+#                       showgrid = FALSE),
+#          yaxis = list(title = "Cumulative Number of Cases",
+#                       showgrid = FALSE),
+#          legend = list(x = 0.1, y = 0.9),
+#                  hovermode = "compare")
+
+
+plotly::plot_ly(data = df_daily,
+                x = ~ date,
+                y = ~ active_cum, 
+                name = 'Activos', 
+                fillcolor = active_color,
+                type = 'scatter',
+                mode = 'none', 
+                stackgroup = 'one') %>%
+  plotly::add_trace(y = ~ recovered_cum,
+                    name = "Recuperados",
+                    fillcolor = recovered_color) %>%
+  plotly::add_trace(y = ~ death_cum,
+                    name = "Fallecidos",
+                    fillcolor = death_color) %>%
+  plotly::layout(title = "",
+                 yaxis = list(title = "Número de Casos Acumulados"),
+                 xaxis = list(title = "Date"),
+                 legend = list(x = 0.1, y = 0.9),
+                 hovermode = "compare")
+  
+
+```
+
+
+### Casos Confirmados, Fallecidos, Casos Nuevos y Tasa de Letalidad por Región
+    
+```{r}
+df_summary <- df %>%
+		  dplyr::mutate("Letalidad" = Fallecidos / Confirmados)  
+
+df_summary %>% 	DT::datatable(rownames = FALSE,
+            		#colnames = c("Region", "Confirmados", "Fallecidos", "Death Rate"),
+            		options = list(pageLength = nrow(df_summary), dom = 'tip')) %>%
+  			DT::formatPercentage("Letalidad", 2)
+
+```
+
+
+Mapa Chile
+=======================================================================
+
+Column {data-width=400}
+-------------------------------------
+    
+### Zona Norte y Centro
+    
+```{r}
+at_aux = sort(df_mapa$Confirmados,partial=(length(df_mapa$Confirmados)-1))[length(df_mapa$Confirmados)-1]
+at_region = round(c(lattice::do.breaks(endpoints = c(floor(min(df_mapa$Confirmados)), ceiling(at_aux)), nint = 6),lattice::do.breaks(endpoints = c(ceiling(at_aux), max(df_mapa$Confirmados)), nint = 4)[-1]),0)
+#at_10 = round(as.numeric(quantile(df_mapa$Confirmados,probs = seq(0, 1, 0.2)),0))
+
+#at_10 = round(lattice::do.breaks(endpoints = c(floor(min(df_mapa$confirmed)), ceiling(max(df_mapa$confirmed))), nint = 4),0)
+
+
+mapview(shp_chile_1,
+  zcol = "Confirmados",
+  alpha = 0.5,
+  map.types = c("OpenStreetMap","CartoDB.Positron","CartoDB.DarkMatter","Esri.WorldImagery","OpenTopoMap"),
+  layer.name = "Casos Confirmados",
+  legend = TRUE,
+  at = at_region
+)
+```
+
+
+### Zona Sur
+
+```{r}
+mapview(shp_chile_2,
+  zcol = "Confirmados",
+  alpha = 0.5,
+  map.types = c("OpenStreetMap","CartoDB.Positron","CartoDB.DarkMatter","Esri.WorldImagery","OpenTopoMap"),
+  layer.name = "Casos Confirmados",
+  legend = TRUE,
+  at    = at_region
+)
+
+```
+
+
+Mapas Regiones
+=======================================================================
+
+Column {data-width=400}
+-------------------------------------
+
+### Mapa Santiago
+
+```{r}
+
+at_auxcom = sort(Nmapa_comunas$"Confirmados Comuna",partial=(length(Nmapa_comunas$"Confirmados Comuna")-1))[length(Nmapa_comunas$"Confirmados Comuna")-1]
+#at_comuna = round(c(lattice::do.breaks(endpoints = c(floor(min(Nmapa_comunas$"Confirmados Comuna")), ceiling(at_auxcom)), nint = 6),lattice::do.breaks(endpoints = c(ceiling(at_auxcom), max(Nmapa_comunas$"Confirmados Comuna")), nint = 4)[-1]),0)
+
+at_comuna = round(c(lattice::do.breaks(endpoints = c(floor(min(Nmapa_comunas$"Confirmados Comuna")), ceiling(quantile(Nmapa_comunas$"Confirmados Comuna",p=0.9,names=F))), nint = 6),lattice::do.breaks(endpoints = c(ceiling(quantile(Nmapa_comunas$"Confirmados Comuna",p=0.9,names=F)), max(Nmapa_comunas$"Confirmados Comuna")), nint = 4)[-1]),0)
+
+
+#at_comuna = round(lattice::do.breaks(endpoints = c(floor(min(Nmapa_comunas$"Confirmados Comuna")), ceiling(max(Nmapa_comunas$"Confirmados Comuna"))), nint = 8),0)
+
+mapview(shp_santiago,
+  zcol = "Confirmados Comuna",
+  alpha = 0.5,
+  map.types = c("OpenStreetMap","CartoDB.Positron","CartoDB.DarkMatter","Esri.WorldImagery","OpenTopoMap"),
+  layer.name = "Casos Confirmados",
+  legend = TRUE,
+  at = at_comuna
+)
+```
+
+### Mapa `r  filtro_region$Region[1]`
+
+```{r}
+mapview(eval(parse(text=paste0("shp_",filtro_region$Region[1]))),
+  zcol = "Confirmados Comuna",
+  alpha = 0.5,
+  map.types = c("OpenStreetMap","CartoDB.Positron","CartoDB.DarkMatter","Esri.WorldImagery","OpenTopoMap"),
+  layer.name = "Confirmed rate per 100,000 population",
+  legend = TRUE,
+  at = at_comuna
+)
+```
+
+Column {data-width=400}
+-------------------------------------
+
+### Mapa `r  filtro_region$Region[2]`
+
+```{r}
+mapview(eval(parse(text=paste0("shp_",filtro_region$Region[2]))),
+  zcol = "Confirmados Comuna",
+  alpha = 0.5,
+  map.types = c("OpenStreetMap","CartoDB.Positron","CartoDB.DarkMatter","Esri.WorldImagery","OpenTopoMap"),
+  layer.name = "Casos Confirmados",
+  legend = TRUE,
+  at = at_comuna
+)
+```
+
+### Mapa `r  filtro_region$Region[3]`
+
+```{r}
+mapview(eval(parse(text=paste0("shp_",filtro_region$Region[3]))),
+  zcol = "Confirmados Comuna",
+  alpha = 0.5,
+  map.types = c("OpenStreetMap","CartoDB.Positron","CartoDB.DarkMatter","Esri.WorldImagery","OpenTopoMap"),
+  layer.name = "Casos Confirmados",
+  legend = TRUE,
+  at = at_comuna
+)
+```
+
+Casos Nuevos
+=======================================================================
+
+Column {data-width=400}
+-------------------------------------
+
+### Casos Nuevos Totales
+
+```{r}
+ay <- list(
+  		tickfont = list(color = "red"),
+  		overlaying = "y",
+  		side = "right",
+  		title = "Variación",
+		tickformat = "%"
+	)
+
+plotly::plot_ly(data = df_ncases ,
+                x = ~ date,
+                y = ~ new, 
+                name = 'Casos Nuevos', 
+                #fillcolor = active_color,
+                type = 'scatter',
+                mode = 'line+markers', 
+                stackgroup = 'one') %>%
+  plotly::add_lines(data = df_ncases ,
+                x = ~ date,
+                y = ~ variacion,
+		    name = 'Variación Diaria', 
+		    yaxis = "y2")%>%	
+  plotly::layout(title = "",
+                 yaxis = list(title = "Casos Nuevos Diarios"),
+                 xaxis = list(title = "Date"),
+              #  legend = list(x = 1.05, y = 0.9),
+                 hovermode = "compare",
+		     yaxis2 = ay)
+```
+
+Column {data-width=400}
+-------------------------------------
+
+### Casos Nuevos por Región
+
+```{r}
+library(plotly)
+plot_nregion <- plot_ly(df_traj_region, x = ~ Fecha)
+
+ToAddRegion <- setdiff(colnames(df_traj_region),"Fecha")
+
+for(i in ToAddRegion){
+	if (i == "Arica y Parinacota"){
+		plot_nregion <- plot_nregion %>% 
+					add_trace(y = df_traj_region[[i]], name = i, mode = 'lines+markers')
+						}
+	if (i != "Arica y Parinacota"){
+		plot_nregion <- plot_nregion %>% 
+					add_trace(y = df_traj_region[[i]], name = i, visible = F, mode = 'lines+markers') 							
+	}
+}
+
+plot_nregion <- plot_nregion %>% layout(
+    						#title = "Tendencia de los Casos Nuevos",
+		    				xaxis = list(rangeslider = "date"),
+    						yaxis = list(title = "Casos Nuevos"),
+				    		updatemenus = list(
+      								list(
+        									y = 1.0,
+        									buttons = list(
+												list(method = "restyle",
+													args = list("visible", list(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[1]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[2]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[3]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[4]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[5]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[6]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[7]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[8]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[9]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[10]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[11]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[12]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[13]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)),
+													label = ToAddRegion[14]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE)),
+													label = ToAddRegion[15]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE)),
+													label = ToAddRegion[16])))))
+
+
+plot_nregion
+```
+
+
+Casos Activos
+=======================================================================
+
+Column {data-width=400}
+-------------------------------------
+
+### Casos Activos
+
+```{r}
+ay <- list(
+  		tickfont = list(color = "red"),
+  		overlaying = "y",
+  		side = "right",
+  		title = "Variación",
+		tickformat = "%"
+	)
+
+plotly::plot_ly(data = casos_act ,
+                x = ~ date,
+                y = ~ Activos, 
+                name = 'Casos Activos', 
+                #fillcolor = active_color,
+                type = 'scatter',
+                mode = 'line+markers', 
+                stackgroup = 'one') %>%
+  plotly::layout(title = "",
+                 yaxis = list(title = "Casos Activos Diarios"),
+                 xaxis = list(title = "Date"),
+              #  legend = list(x = 1.05, y = 0.9),
+                 hovermode = "compare",
+		     yaxis2 = ay)
+```
+
+Column {data-width=400}
+-------------------------------------
+
+### Casos Nuevos por Región
+
+```{r}
+library(plotly)
+plot_actregion <- plot_ly(dfact_traj_region, x = ~ Fecha)
+
+rm(ToAddRegion)
+ToAddRegion <- setdiff(colnames(dfact_traj_region),"Fecha")
+
+for(i in ToAddRegion){
+	if (i == "Arica y Parinacota"){
+		plot_actregion <- plot_actregion %>% 
+					add_trace(y = dfact_traj_region[[i]], name = i, mode = 'lines+markers')
+						}
+	if (i != "Arica y Parinacota"){
+		plot_actregion <- plot_actregion %>% 
+					add_trace(y = dfact_traj_region[[i]], name = i, visible = F, mode = 'lines+markers') 							
+	}
+}
+
+plot_actregion <- plot_actregion %>% layout(
+    						#title = "Tendencia de los Casos Activos",
+		    				xaxis = list(rangeslider = "date"),
+    						yaxis = list(title = "Casos Ativos"),
+				    		updatemenus = list(
+      								list(x=1.2,
+        									y = 0.9,
+        									buttons = list(
+												list(method = "restyle",
+													args = list("visible", list(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[1]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[2]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[3]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[4]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[5]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[6]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[7]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[8]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[9]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[10]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[11]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[12]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE)),
+													label = ToAddRegion[13]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)),
+													label = ToAddRegion[14]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE)),
+													label = ToAddRegion[15]),
+												list(method = "restyle",
+													args = list("visible", list(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE)),
+													label = ToAddRegion[16])))))
+
+
+plot_actregion
+```
+
+### Casos Nuevos por Comuna Región Metropolitana
+
+```{r}
+library(plotly)
+plot_actcomuna <- plot_ly(df_act_traj_comuna, x = ~ Fecha)
+
+
+ToAddComuna <- setdiff(colnames(df_act_traj_comuna),"Fecha")
+
+for(i in ToAddComuna ){
+	if (i == "Alhue"){
+		plot_actcomuna <- plot_actcomuna %>% 
+					add_trace(y = df_act_traj_comuna[[i]], name = i, mode = 'lines+markers')
+						}
+	if (i != "Alhue"){
+		plot_actcomuna <- plot_actcomuna %>% 
+					add_trace(y = df_act_traj_comuna[[i]], name = i, visible = F, mode = 'lines+markers') 							
+	}
+}
+
+rm(k)
+for (k in 1:52){
+	if(k == 1){
+		assign(paste0("list",as.character(k)),c(list(TRUE),rep(list(FALSE),51)))
+	}
+	if(k == 52){
+		assign(paste0("list",as.character(k)),c(rep(list(FALSE),51),list(TRUE)))
+	}
+	assign(paste0("list",as.character(k)),c(rep(list(FALSE),k-1),list(TRUE),rep(list(FALSE),52-k)))
+}
+
+rm(auxpaste0)
+for (l in 1:52){
+	if(l == 1){
+		auxpaste0 = paste0("list(method = 'restyle',args = list('visible', list",l,"),label = ToAddComuna[",l,"]),")
+	}
+	else{
+		if(l == 52){
+			auxpaste0 <-  paste0(auxpaste0,paste0("list(method = 'restyle',args = list('visible', list",l,"),label = ToAddComuna[",l,"])"))
+		}else{
+			auxpaste0 <-  paste0(auxpaste0,paste0("list(method = 'restyle',args = list('visible', list",l,"),label = ToAddComuna[",l,"]),"))
+		}
+	}
+}
+
+plot_actcomuna <- plot_actcomuna %>% 
+				layout(
+    					#title = "Tendencia de los Casos Activos",
+		    			xaxis = list(rangeslider = "date"),
+    					yaxis = list(title = "Casos Activos"),
+				    	updatemenus = list(
+      							list(x=1.2,
+        								y = 0.9,
+        								buttons = list(
+list(method = "restyle",args = list("visible", list1),label = ToAddComuna[1]),
+list(method = "restyle",args = list("visible", list2),label = ToAddComuna[2]),
+list(method = "restyle",args = list("visible", list3),label = ToAddComuna[3]),
+list(method = "restyle",args = list("visible", list4),label = ToAddComuna[4]),
+list(method = "restyle",args = list("visible", list5),label = ToAddComuna[5]),
+list(method = "restyle",args = list("visible", list6),label = ToAddComuna[6]),
+list(method = "restyle",args = list("visible", list7),label = ToAddComuna[7]),
+list(method = "restyle",args = list("visible", list8),label = ToAddComuna[8]),
+list(method = "restyle",args = list("visible", list9),label = ToAddComuna[9]),
+list(method = "restyle",args = list("visible", list10),label = ToAddComuna[10]),
+list(method = "restyle",args = list("visible", list11),label = ToAddComuna[11]),
+list(method = "restyle",args = list("visible", list12),label = ToAddComuna[12]),
+list(method = "restyle",args = list("visible", list13),label = ToAddComuna[13]),
+list(method = "restyle",args = list("visible", list14),label = ToAddComuna[14]),
+list(method = "restyle",args = list("visible", list15),label = ToAddComuna[15]),
+list(method = "restyle",args = list("visible", list16),label = ToAddComuna[16]),
+list(method = "restyle",args = list("visible", list17),label = ToAddComuna[17]),
+list(method = "restyle",args = list("visible", list18),label = ToAddComuna[18]),
+list(method = "restyle",args = list("visible", list19),label = ToAddComuna[19]),
+list(method = "restyle",args = list("visible", list20),label = ToAddComuna[20]),
+list(method = "restyle",args = list("visible", list21),label = ToAddComuna[21]),
+list(method = "restyle",args = list("visible", list22),label = ToAddComuna[22]),
+list(method = "restyle",args = list("visible", list23),label = ToAddComuna[23]),
+list(method = "restyle",args = list("visible", list24),label = ToAddComuna[24]),
+list(method = "restyle",args = list("visible", list25),label = ToAddComuna[25]),
+list(method = "restyle",args = list("visible", list26),label = ToAddComuna[26]),
+list(method = "restyle",args = list("visible", list27),label = ToAddComuna[27]),
+list(method = "restyle",args = list("visible", list28),label = ToAddComuna[28]),
+list(method = "restyle",args = list("visible", list29),label = ToAddComuna[29]),
+list(method = "restyle",args = list("visible", list30),label = ToAddComuna[30]),
+list(method = "restyle",args = list("visible", list31),label = ToAddComuna[31]),
+list(method = "restyle",args = list("visible", list32),label = ToAddComuna[32]),
+list(method = "restyle",args = list("visible", list33),label = ToAddComuna[33]),
+list(method = "restyle",args = list("visible", list34),label = ToAddComuna[34]),
+list(method = "restyle",args = list("visible", list35),label = ToAddComuna[35]),
+list(method = "restyle",args = list("visible", list36),label = ToAddComuna[36]),
+list(method = "restyle",args = list("visible", list37),label = ToAddComuna[37]),
+list(method = "restyle",args = list("visible", list38),label = ToAddComuna[38]),
+list(method = "restyle",args = list("visible", list39),label = ToAddComuna[39]),
+list(method = "restyle",args = list("visible", list40),label = ToAddComuna[40]),
+list(method = "restyle",args = list("visible", list41),label = ToAddComuna[41]),
+list(method = "restyle",args = list("visible", list42),label = ToAddComuna[42]),
+list(method = "restyle",args = list("visible", list43),label = ToAddComuna[43]),
+list(method = "restyle",args = list("visible", list44),label = ToAddComuna[44]),
+list(method = "restyle",args = list("visible", list45),label = ToAddComuna[45]),
+list(method = "restyle",args = list("visible", list46),label = ToAddComuna[46]),
+list(method = "restyle",args = list("visible", list47),label = ToAddComuna[47]),
+list(method = "restyle",args = list("visible", list48),label = ToAddComuna[48]),
+list(method = "restyle",args = list("visible", list49),label = ToAddComuna[49]),
+list(method = "restyle",args = list("visible", list50),label = ToAddComuna[50]),
+list(method = "restyle",args = list("visible", list51),label = ToAddComuna[51]),
+list(method = "restyle",args = list("visible", list52),label = ToAddComuna[52])
+))))
+
+
+plot_actcomuna
+```
+
+
+
+
+
+Referencias
+=======================================================================
+
+**Reporte Coronavirus Chile**
+
+Este reporte nace de la necesidad de visualizar y comunicar de una manera sencilla e interactiva la situación actual de Chile frente a la pandemia covid-19. Aquí se presentan las principales estadísticas y tendencias según las cifras oficiales entregadas por el Ministerio de Salud.
+
+Usted puede encontrar información a nivel país, regional y por comuna. Esta en una etapa de desarrollo y se agregarán más funcionalidades.
+
+**Datos**
+
+Los datos utilizados en este reporte corresponde a la extracción realidad por la Mesa de Datos COVID-19 liderada por el Ministerio de Ciencia, Tecnología, Conocimiento e Innovación de Chile [MinCiencia](https://github.com/MinCiencia/Datos-COVID19) a las cifras oficiales informadas por el Ministerio de Salud [MinSal](https://www.gob.cl/coronavirus/cifrasoficiales/).
+
+
+**Packages**
+
+* Reporte interactivo - librería [flexdashboard](https://rmarkdown.rstudio.com/flexdashboard/). 
+* Visualización - la librería para gráficos [plotly](https://plot.ly/r/). 
+* Mapas - las librerías [mapview](https://github.com/r-spatial/mapview) y [sf](https://cran.r-project.org/web/packages/sf/index.html) para mapas y mapas de vectores.
+* Mapa de Chile - la librería [chilemapas](https://github.com/pachamaltese/chilemapas/).
+* Manipulación de datos - las librerías [dplyr](https://dplyr.tidyverse.org/) y [tidyr](https://tidyr.tidyverse.org/).
+* Tablas - the [DT](https://rstudio.github.io/DT/) package
+
+**Desarrollado** 
+
+Cristian Vásquez con la increíble colaboración de Vania Acevedo y Julián León Vásquez.
