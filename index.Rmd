@@ -922,4 +922,6 @@ Los datos utilizados en este reporte corresponde a la extracción realidad por l
 
 **Desarrollado** 
 
-Cristian Vásquez con la increíble colaboración de Vania Acevedo y Julián León Vásquez.
+Cristian Vásquez: Profesor Docente Asistente (full time), Escuela de Administración. Facultad de Economía y Adminstración. Pontificia Universidad Católica de Chile.
+
+Este reporte fue desarrollado con la increíble colaboración de Vania Acevedo y Julián León Vásquez.
