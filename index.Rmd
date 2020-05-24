@@ -700,7 +700,7 @@ plotly::plot_ly(data = casos_act ,
 Column {data-width=400}
 -------------------------------------
 
-### Casos Nuevos por Región
+### Casos Activos por Región
 
 ```{r}
 library(plotly)
@@ -781,7 +781,7 @@ plot_actregion <- plot_actregion %>% layout(
 plot_actregion
 ```
 
-### Casos Nuevos por Comuna Región Metropolitana
+### Casos Activos por Comuna Región Metropolitana
 
 ```{r}
 library(plotly)
