@@ -46,21 +46,21 @@ death_color 	    <- "red"
 confirmed  		<- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/CasosTotalesCumulativo.csv",col_names=T)
 #recovered 		<- read_csv(file = "C:/Users/ctvas/Desktop/Tablero Coronavirus/Datos-COVID19-master/Datos-COVID19-master/output/producto3/CasosTotalesCumulativo.csv",col_names=T)
 death      		<- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto14/FallecidosCumulativo.csv",col_names=T)
-nuevos            <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto13/CasosNuevosCumulativo.csv",col_names=T)
+nuevos        <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto13/CasosNuevosCumulativo.csv",col_names=T)
 consintomas		<- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto26/CasosNuevosConSintomas.csv",col_names=T)
 sinsintomas		<- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto27/CasosNuevosSinSintomas.csv",col_names=T)
 
 
 confirmed  		<- confirmed[c(1,length(confirmed))]
 death      		<- death[c(1,length(death))]
-nuevos		<- nuevos[c(1,length(nuevos))]	
+nuevos		    <- nuevos[c(1,length(nuevos))]	
 consintomas		<- consintomas[c(1,length(consintomas))]
 sinsintomas		<- sinsintomas[c(1,length(sinsintomas))]
 
 names(confirmed) 		<- c("Region","Confirmados")
 names(death)     		<- c("Region","Fallecidos")
-names(nuevos) 		<- c("Region","Casos Nuevos")
-names(consintomas)     	<- c("Region","Nuevos con Síntomas")
+names(nuevos) 		  <- c("Region","Casos Nuevos")
+names(consintomas)  <- c("Region","Nuevos con Síntomas")
 names(sinsintomas) 	<- c("Region","Nuevos sin Síntomas")
 
 
@@ -86,25 +86,25 @@ cum_recovered      <- cum_recovered %>%
 #cum_recovered      <- tidyr::gather(cum_recovered, 2:length(cum_recovered), key = "date", value = "recovered_cum")  %>%                           
 #     			    	dplyr::select(-Fecha)                            
 
-cum_death	 	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto14/FallecidosCumulativo.csv",col_names=T)
-cum_death		 <- cum_death %>%
-			    	dplyr::filter(Region == "Total")	
-cum_death   	 <- tidyr::gather(cum_death, 2:length(cum_death), key = "date", value = "death_cum")   %>%
-				dplyr::select(-Region)                          
-
-cum_confirmed	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/CasosTotalesCumulativo.csv",col_names=T)
-cum_confirmed	 <- cum_confirmed %>%
-			    	dplyr::filter(Region == "Total")	
-cum_confirmed   	 <- tidyr::gather(cum_confirmed, 2:length(cum_confirmed), key = "date", value = "confirmed_cum")   %>%
-				dplyr::select(-Region)                          
-
-df_daily		 <- cum_confirmed %>%
-				dplyr::left_join(cum_recovered) %>%
-				dplyr::left_join(cum_death)	  %>%
-				tidyr::replace_na(list(recovered_cum = 0, death_cum = 0)) %>%
-				dplyr::mutate(active_cum =  confirmed_cum - recovered_cum - death_cum) %>% 
-        dplyr::mutate(date = as.Date(date))
-df1 <- coronavirus %>% dplyr::filter(date == max(date))
+  cum_death	 	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto14/FallecidosCumulativo.csv",col_names=T)
+  cum_death		 <- cum_death %>%
+  			    	dplyr::filter(Region == "Total")	
+  cum_death   	 <- tidyr::gather(cum_death, 2:length(cum_death), key = "date", value = "death_cum")   %>%
+  				dplyr::select(-Region)                          
+  
+  cum_confirmed	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/CasosTotalesCumulativo.csv",col_names=T)
+  cum_confirmed	 <- cum_confirmed %>%
+  			    	dplyr::filter(Region == "Total")	
+  cum_confirmed   	 <- tidyr::gather(cum_confirmed, 2:length(cum_confirmed), key = "date", value = "confirmed_cum")   %>%
+  				dplyr::select(-Region)                          
+  
+  df_daily		 <- cum_confirmed %>%
+  				dplyr::left_join(cum_recovered) %>%
+  				dplyr::left_join(cum_death)	  %>%
+  				tidyr::replace_na(list(recovered_cum = 0, death_cum = 0)) %>%
+  				dplyr::mutate(active_cum =  confirmed_cum - recovered_cum - death_cum) %>% 
+          dplyr::mutate(date = as.Date(date))
+  df1 <- coronavirus %>% dplyr::filter(date == max(date))
 
 library(scales)
 
