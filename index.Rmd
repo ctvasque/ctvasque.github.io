@@ -300,8 +300,8 @@ valueBox(value = paste(format(df_daily$active_cum[length(df_daily$active_cum)], 
 ### recovered {.value-box}
 
 ```{r}
-valueBox(value = paste(format(df_daily$recovered_cum[length(df_daily$recovered_cum)], big.mark = ","), " (",
-                       round(100 * sum(df_daily$recovered_cum[length(df_daily$recovered_cum)], na.rm = TRUE) / sum(df$Confirmados), 1), 
+valueBox(value = paste(format(df_daily$new_recovered_cum[length(df_daily$new_recovered_cum)], big.mark = ","), " (",
+                       round(100 * sum(df_daily$new_recovered_cum[length(df_daily$new_recovered_cum)], na.rm = TRUE) / sum(df$Confirmados), 1), 
                        "%)", sep = ""), 
          caption = "Casos Recuperados", icon = "fas fa-heartbeat", 
          color = recovered_color)
