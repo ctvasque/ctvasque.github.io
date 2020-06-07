@@ -97,13 +97,23 @@ cum_recovered      <- cum_recovered %>%
   			    	dplyr::filter(Region == "Total")	
   cum_confirmed   	 <- tidyr::gather(cum_confirmed, 2:length(cum_confirmed), key = "date", value = "confirmed_cum")   %>%
   				dplyr::select(-Region)                          
-  
-  df_daily		 <- cum_confirmed %>%
-  				dplyr::left_join(cum_recovered) %>%
-  				dplyr::left_join(cum_death)	  %>%
-  				tidyr::replace_na(list(recovered_cum = 0, death_cum = 0)) %>%
-  				dplyr::mutate(active_cum =  confirmed_cum - recovered_cum - death_cum) %>% 
-          dplyr::mutate(date = as.Date(date))
+
+cum_act 	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto5/TotalesNacionales_T.csv",col_names=T)
+cum_act	 <- cum_act 										%>%
+				dplyr::rename(date = Fecha, active_cum = "Casos activos") 	%>%
+				dplyr::select(date,active_cum)					%>%
+				dplyr::mutate(date = as.character(date))	
+
+df_daily		 <- cum_confirmed %>%
+				dplyr::left_join(cum_recovered) %>%
+				dplyr::left_join(cum_death)	  %>%
+				dplyr::left_join(cum_act)	  %>%	
+				tidyr::replace_na(list(recovered_cum = 0, death_cum = 0, active_cum = 0)) %>%
+		           dplyr::mutate(date = as.Date(date))
+
+df_daily <- df_daily %>%
+			mutate(new_recovered_cum = confirmed_cum - death_cum - active_cum)
+
   df1 <- coronavirus %>% dplyr::filter(date == max(date))
 
 library(scales)
@@ -400,7 +410,7 @@ plotly::plot_ly(data = df_daily,
                 type = 'scatter',
                 mode = 'none', 
                 stackgroup = 'one') %>%
-  plotly::add_trace(y = ~ recovered_cum,
+  plotly::add_trace(y = ~ new_recovered_cum,
                     name = "Recuperados",
                     fillcolor = recovered_color) %>%
   plotly::add_trace(y = ~ death_cum,
