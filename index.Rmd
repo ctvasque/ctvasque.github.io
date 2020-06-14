@@ -100,7 +100,7 @@ cum_recovered      <- cum_recovered %>%
 
 cum_act 	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto5/TotalesNacionales_T.csv",col_names=T)
 cum_act	 <- cum_act 										%>%
-				dplyr::rename(date = Fecha, active_cum = "Casos activos") 	%>%
+				dplyr::rename(date = Fecha, active_cum = "Casos activos por FD") 	%>%
 				dplyr::select(date,active_cum)					%>%
 				dplyr::mutate(date = as.character(date))	
 
@@ -131,7 +131,7 @@ df_ncases    <- new_cases  %>%
 
 casos_act 	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto5/TotalesNacionales_T.csv",col_names=T)
 casos_act	 <- casos_act 												%>%
-				dplyr::rename(date = Fecha, Activos  = "Casos activos") 	%>%
+				dplyr::rename(date = Fecha, Activos  = "Casos activos por FD") 	%>%
 				dplyr::select(date,Activos)
 
 casos_act   <- casos_act  %>%
