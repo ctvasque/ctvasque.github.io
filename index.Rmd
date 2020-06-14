@@ -517,7 +517,7 @@ mapview(eval(parse(text=paste0("shp_",filtro_region$Region[1]))),
   zcol = "Confirmados Comuna",
   alpha = 0.5,
   map.types = c("OpenStreetMap","CartoDB.Positron","CartoDB.DarkMatter","Esri.WorldImagery","OpenTopoMap"),
-  layer.name = "Confirmed rate per 100,000 population",
+  layer.name = "Casos Confirmados",
   legend = TRUE,
   at = at_comuna
 )
