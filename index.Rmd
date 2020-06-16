@@ -253,11 +253,11 @@ shp_chile_2   = sf::st_as_sf(dplyr::filter(Nmapa_regiones,!(codigo_region %in% c
 					dplyr::rename("Código Región" = codigo_region))
 
 
-shp_santiago = sf::st_as_sf(dplyr::filter(Nmapa_comunas,codigo_region=="13"))
+shp_santiago = sf::st_as_sf(dplyr::filter(Nmapa_comunas,codigo_region=="13")%>% dplyr::rename("Código Región" = codigo_region, "Región" = Region, "Población"= Poblacion))
 
-assign(paste0("shp_",filtro_region$Region[1]),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[1])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region))
-assign(paste0("shp_",filtro_region$Region[2]),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[2])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region))
-assign(paste0("shp_",filtro_region$Region[3]),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[3])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region))
+assign(paste0("shp_",filtro_region$Region[1]),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[1])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region, "Población"= Poblacion))
+assign(paste0("shp_",filtro_region$Region[2]),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[2])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region,"Población"= Poblacion))
+assign(paste0("shp_",filtro_region$Region[3]),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[3])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region, "Población"= Poblacion))
 
 ```
 
@@ -455,6 +455,7 @@ at_region = round(c(lattice::do.breaks(endpoints = c(floor(min(df_mapa$Confirmad
 
 #at_10 = round(lattice::do.breaks(endpoints = c(floor(min(df_mapa$confirmed)), ceiling(max(df_mapa$confirmed))), nint = 4),0)
 
+shp_chile_1 <- rename(shp_chile_1,"Población" = Poblacion)
 
 mapview(shp_chile_1,
   zcol = "Confirmados",
@@ -470,6 +471,9 @@ mapview(shp_chile_1,
 ### Zona Sur
 
 ```{r}
+
+shp_chile_2 <- rename(shp_chile_2,"Población" = Poblacion)
+
 mapview(shp_chile_2,
   zcol = "Confirmados",
   alpha = 0.5,
@@ -513,6 +517,7 @@ mapview(shp_santiago,
 ### Mapa `r  filtro_region$Region[1]`
 
 ```{r}
+
 mapview(eval(parse(text=paste0("shp_",filtro_region$Region[1]))),
   zcol = "Confirmados Comuna",
   alpha = 0.5,
@@ -529,6 +534,7 @@ Column {data-width=400}
 ### Mapa `r  filtro_region$Region[2]`
 
 ```{r}
+
 mapview(eval(parse(text=paste0("shp_",filtro_region$Region[2]))),
   zcol = "Confirmados Comuna",
   alpha = 0.5,
@@ -542,6 +548,7 @@ mapview(eval(parse(text=paste0("shp_",filtro_region$Region[2]))),
 ### Mapa `r  filtro_region$Region[3]`
 
 ```{r}
+
 mapview(eval(parse(text=paste0("shp_",filtro_region$Region[3]))),
   zcol = "Confirmados Comuna",
   alpha = 0.5,
