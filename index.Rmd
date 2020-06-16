@@ -293,7 +293,7 @@ valueBox(value = paste(format(sum(df$"Casos Nuevos"), big.mark = ","), "", sep =
 valueBox(value = paste(format(df_daily$active_cum[length(df_daily$active_cum)], big.mark = ","), " (",
                        round(100 * sum(df_daily$active_cum[length(df_daily$active_cum)], na.rm = TRUE) / sum(df$Confirmados), 1), 
                        "%)", sep = ""), 
-         caption = "Casos Activos", icon = "fas fa-ambulance", 
+         caption = "Casos Activos (FD)", icon = "fas fa-ambulance", 
          color = active_color)
 ```
 
@@ -303,7 +303,7 @@ valueBox(value = paste(format(df_daily$active_cum[length(df_daily$active_cum)], 
 valueBox(value = paste(format(df_daily$new_recovered_cum[length(df_daily$new_recovered_cum)], big.mark = ","), " (",
                        round(100 * sum(df_daily$new_recovered_cum[length(df_daily$new_recovered_cum)], na.rm = TRUE) / sum(df$Confirmados), 1), 
                        "%)", sep = ""), 
-         caption = "Casos Recuperados", icon = "fas fa-heartbeat", 
+         caption = "Casos Recuperados (FD)", icon = "fas fa-heartbeat", 
          color = recovered_color)
 ```
 
@@ -411,7 +411,7 @@ plotly::plot_ly(data = df_daily,
                 mode = 'none', 
                 stackgroup = 'one') %>%
   plotly::add_trace(y = ~ new_recovered_cum,
-                    name = "Recuperados",
+                    name = "Recuperados (FD)",
                     fillcolor = recovered_color) %>%
   plotly::add_trace(y = ~ death_cum,
                     name = "Fallecidos",
@@ -918,7 +918,7 @@ Usted puede encontrar información a nivel país, regional y por comuna. Esta en
 
 **Datos**
 
-Los datos utilizados en este reporte corresponde a la extracción realidad por la Mesa de Datos COVID-19 liderada por el Ministerio de Ciencia, Tecnología, Conocimiento e Innovación de Chile [MinCiencia](https://github.com/MinCiencia/Datos-COVID19) a las cifras oficiales informadas por el Ministerio de Salud [MinSal](https://www.gob.cl/coronavirus/cifrasoficiales/).
+Los datos utilizados en este reporte corresponde a la extracción realidad por la Mesa de Datos COVID-19 liderada por el Ministerio de Ciencia, Tecnología, Conocimiento e Innovación de Chile [MinCiencia](https://github.com/MinCiencia/Datos-COVID19) a las cifras oficiales informadas por el Ministerio de Salud [MinSal](https://www.gob.cl/coronavirus/cifrasoficiales/). Para los casos activos y recuperados se utiliza la fecha de diagnóstico (FD).
 
 
 **Packages**
