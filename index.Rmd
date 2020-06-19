@@ -3,7 +3,7 @@ title: "Reporte Covid-19 Chile"
 output: 
   flexdashboard::flex_dashboard:
     #theme: readable
-    #logo: fae.png
+    logo: EA12_2.png
     #favicon: fae.png
     css: styles.css
     orientation: rows
