@@ -168,7 +168,7 @@ df_traj_region     <- read_csv(file = "https://raw.githubusercontent.com/MinCien
 				dplyr::select(Fecha,everything())
 
 dfact_traj_region	<- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto19/CasosActivosPorComuna_std.csv",col_names=T) %>%
-				dplyr::filter(Comuna == "Total")	
+				dplyr::filter(Comuna == "Total", !is.na(Region))	
 
 orden_region	<- data_frame(Region = dfact_traj_region$Region[1:16],ID=1:16)
 
@@ -198,7 +198,9 @@ library(chilemapas)
 library(mapview)
 
 confirmedmap  <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/CasosTotalesCumulativo.csv",col_names=T)
-confcomudmap  <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto1/Covid-19.csv",col_names=T)
+confcomudmap  <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto1/Covid-19.csv",col_names=T) %>%
+                  filter(!is.na(Poblacion))
+
 pcr           <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto7/PCR.csv",col_names=T)
 
 confirmedmap  	  <- confirmedmap[c(1,length(confirmedmap))]
@@ -208,6 +210,7 @@ confirmedmap        <- confirmedmap%>%
 
 confcomudmap	  <- confcomudmap[c(3,4,5,length(confcomudmap)-1,length(confcomudmap))]
 names(confcomudmap) <- c("Comuna","codigo_comuna","Poblacion_comuna", "confirmed_comuna", "Tasa_comuna")
+
 
 
 names(pcr)[2] <- "codigo_region" 
@@ -230,15 +233,16 @@ Nmapa_regiones <- Nmapa_regiones							%>%
 
 
 Nmapa_comunas <- chilemapas::mapa_comunas 					%>%
+          dplyr::mutate(codigo_comuna = as.numeric(codigo_comuna))         %>%
 		     	dplyr::left_join(df_mapa,by = "codigo_region") 		%>%
-			dplyr::left_join(confcomudmap,by = "codigo_comuna") 	%>%
-			dplyr::select(-ID,-Region.y)					%>%
-			dplyr::rename("Código Comuna" = codigo_comuna,
-					  "Código Provincia" = codigo_provincia,
-					   Region  = Region.x,
-					  "Población Comuna" = Poblacion_comuna,
-					  "Confirmados Comuna" = confirmed_comuna,
-					  "Tasa Confirmados por 100,000 comuna"= Tasa_comuna)							
+			    dplyr::left_join(confcomudmap,by = "codigo_comuna") 	%>%
+			    dplyr::select(-ID,-Region.y)					%>%
+			    dplyr::rename("Código Comuna" = codigo_comuna,
+					              "Código Provincia" = codigo_provincia,
+					              Region  = Region.x,
+					              "Población Comuna" = Poblacion_comuna,
+					              "Confirmados Comuna" = confirmed_comuna,
+					              "Tasa Confirmados por 100,000 comuna"= Tasa_comuna)							
 
 filtro_region <- dplyr::distinct(Nmapa_comunas, codigo_region, Region, Confirmados) 	%>%
 			dplyr::arrange(desc(Confirmados)) 							%>%
