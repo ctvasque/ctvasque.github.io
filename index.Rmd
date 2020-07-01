@@ -77,7 +77,7 @@ df <-	df %>%
 
 cum_recovered 	 <- read_csv(file = "https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto5/TotalesNacionales_T.csv",col_names=T)
 cum_recovered      <- cum_recovered %>%
-				dplyr::rename(recovered_cum = "Casos recuperados", date = Fecha) %>%
+				dplyr::rename(recovered_cum = "Casos recuperados por FD", date = Fecha) %>%
 				dplyr::select(date,recovered_cum) %>%
 				dplyr::mutate(date = as.character(date))
 
