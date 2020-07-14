@@ -231,6 +231,8 @@ Nmapa_regiones <- Nmapa_regiones							%>%
 							"Tasa Confirmados por 100,000" = Tasa)	%>%
 				dplyr::select(-Region.y,-ID)
 
+confcomudmap <- confcomudmap %>%
+                  mutate(codigo_comuna = as.numeric(codigo_comuna))
 
 Nmapa_comunas <- chilemapas::mapa_comunas 					%>%
           dplyr::mutate(codigo_comuna = as.numeric(codigo_comuna))         %>%
