@@ -264,9 +264,9 @@ shp_chile_2   = sf::st_as_sf(dplyr::filter(Nmapa_regiones,!(codigo_region %in% c
 
 shp_santiago = sf::st_as_sf(dplyr::filter(Nmapa_comunas,codigo_region=="13")%>% dplyr::rename("Código Región" = codigo_region, "Región" = Region, "Población"= Poblacion))
 
-assign(paste0("shp_",filtro_region$Region[1]),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[1])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region, "Población"= Poblacion))
-assign(paste0("shp_",filtro_region$Region[2]),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[2])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region,"Población"= Poblacion))
-assign(paste0("shp_",filtro_region$Region[3]),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[3])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region, "Población"= Poblacion))
+assign(paste0("shp_",gsub(" ", "",filtro_region$Region[1],fixed = TRUE)),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[1])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region, "Población"= Poblacion))
+assign(paste0("shp_",gsub(" ", "",filtro_region$Region[2],fixed = TRUE)),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[2])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region,"Población"= Poblacion))
+assign(paste0("shp_",gsub(" ", "",filtro_region$Region[3],fixed = TRUE)),sf::st_as_sf(dplyr::filter(Nmapa_comunas,!("Código Comuna" %in% c("05104","05201")),codigo_region==filtro_region$codigo_region[3])) %>% dplyr::rename("Código Región" = codigo_region, "Región" = Region, "Población"= Poblacion))
 
 ```
 
@@ -523,11 +523,11 @@ mapview(shp_santiago,
 )
 ```
 
-### Mapa `r  filtro_region$Region[1]`
+### Mapa `r  gsub(" ", "",filtro_region$Region[1],fixed = TRUE)`
 
 ```{r}
 
-mapview(eval(parse(text=paste0("shp_",filtro_region$Region[1]))),
+mapview(eval(parse(text=paste0("shp_",gsub(" ", "",filtro_region$Region[1],fixed = TRUE)))),
   zcol = "Confirmados Comuna",
   alpha = 0.5,
   map.types = c("OpenStreetMap","CartoDB.Positron","CartoDB.DarkMatter","Esri.WorldImagery","OpenTopoMap"),
@@ -540,11 +540,11 @@ mapview(eval(parse(text=paste0("shp_",filtro_region$Region[1]))),
 Column {data-width=400}
 -------------------------------------
 
-### Mapa `r  filtro_region$Region[2]`
+### Mapa `r  gsub(" ", "",filtro_region$Region[2],fixed = TRUE)`
 
 ```{r}
 
-mapview(eval(parse(text=paste0("shp_",filtro_region$Region[2]))),
+mapview(eval(parse(text=paste0("shp_",gsub(" ", "",filtro_region$Region[2],fixed = TRUE)))),
   zcol = "Confirmados Comuna",
   alpha = 0.5,
   map.types = c("OpenStreetMap","CartoDB.Positron","CartoDB.DarkMatter","Esri.WorldImagery","OpenTopoMap"),
@@ -554,11 +554,11 @@ mapview(eval(parse(text=paste0("shp_",filtro_region$Region[2]))),
 )
 ```
 
-### Mapa `r  filtro_region$Region[3]`
+### Mapa `r  gsub(" ", "",filtro_region$Region[3],fixed = TRUE)`
 
 ```{r}
 
-mapview(eval(parse(text=paste0("shp_",filtro_region$Region[3]))),
+mapview(eval(parse(text=paste0("shp_",gsub(" ", "",filtro_region$Region[3],fixed = TRUE)))),
   zcol = "Confirmados Comuna",
   alpha = 0.5,
   map.types = c("OpenStreetMap","CartoDB.Positron","CartoDB.DarkMatter","Esri.WorldImagery","OpenTopoMap"),
