@@ -3,3 +3,6 @@
   font-size:10pt;
   text-align:center;
 }
+.value-box .value {
+    color: white;
+}
